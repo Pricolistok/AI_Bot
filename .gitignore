@@ -1,0 +1,5 @@
+.venv
+settings.py
+.idea/
+__pycache__/
+/pictures
