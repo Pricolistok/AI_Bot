@@ -2,4 +2,4 @@ from messages import Message
 
 
 class Client:
-    messages = [Message]
+    messages:Message = []
