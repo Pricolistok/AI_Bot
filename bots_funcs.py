@@ -1,11 +1,10 @@
-from utils import UtilsSettings
-from client import Client
+import asyncio
 from aiogram.types import Message
 from aiogram import Bot
+from PIL import Image
 
 
-async def eventNewChat(client: Client, message: Message):
-    client.messages.clear()
+async def eventNewChat(message: Message):
     await message.answer('Чат начат заново. Напишите Ваш запрос!')
 
 
@@ -15,12 +14,34 @@ async def eventStartMessage(message: Message):
                          'В боте есть единственная команда: /newchat - команда используется начала нового чата!')
 
 
-async def eventGetDocument(message: Message, bot: Bot, client: Client, indexes_utils: UtilsSettings):
+async def eventGetDocument(message: Message, bot: Bot, client):
     document = message.document
     file_info = await bot.get_file(document.file_id)
     file_path = file_info.file_path
-    destination = f"documents/doc_{indexes_utils.document_id}_{document.file_name}"
+    destination = f"documents/doc_{document.file_name}"
     await bot.download_file(file_path, destination)
-    client.messages.append(Message(text=message.caption, file=indexes_utils.document_id))
-    indexes_utils.document_id += 1
-    await message.reply(f"Downloaded file to {destination}")
+    file = client.files.upload(file=f"documents/doc_{document.file_name}")
+
+    response = client.models.generate_content(
+        model="gemini-2.0-flash", contents=[message.caption, file]
+    )
+    await message.answer(response.text)
+
+
+async def eventGetPhoto(message: Message, client):
+    await message.bot.download(file=message.photo[-1].file_id, destination=f'pictures/pic.png')
+    image = Image.open("pictures/pic.png")
+    await asyncio.sleep(1)
+    response = client.models.generate_content(
+        model="gemini-2.0-flash",
+        contents=[image, message.caption]
+    )
+    await message.answer(response.text)
+
+
+async def eventGetText(message: Message, client):
+    response = client.models.generate_content(
+        model="gemini-2.0-flash",
+        contents=[message.text]
+    )
+    await message.answer(response.text)

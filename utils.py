@@ -10,8 +10,15 @@ class UtilsSettings:
 
 
 async def createDir():
-    mkdir('documents')
-    mkdir('pictures')
+    try:
+        mkdir('documents')
+    except FileExistsError:
+        pass
+
+    try:
+        mkdir('pictures')
+    except FileExistsError:
+        pass
 
 async def removeDir():
     rmtree('documents/')

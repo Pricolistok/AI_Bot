@@ -1,22 +1,23 @@
 import asyncio
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters.command import Command
-from client import Client
-from messages import Message
-from settings import TOKEN
+from settings import TOKEN, API_KEY, MODEL
 from utils import createDir, removeDir, UtilsSettings
-from bots_funcs import eventNewChat, eventStartMessage, eventGetDocument
+from bots_funcs import eventNewChat, eventStartMessage, eventGetDocument, eventGetText, eventGetPhoto
+from google import genai
 
 
 bot = Bot(token=TOKEN)
-client = Client()
 dp = Dispatcher()
 indexes_utils = UtilsSettings()
+AI = genai.Client(api_key=API_KEY)
+chat = AI.chats.create(model=MODEL)
 
 
 @dp.message(Command("newchat"))
 async def cmd_newchat(message: types.Message):
-    await eventNewChat(client, message)
+    chat = AI.chats.create(model=MODEL)
+    await eventNewChat(message)
 
 
 @dp.message(Command("start"))
@@ -25,20 +26,17 @@ async def cmd_start(message: types.Message):
 
 
 @dp.message(F.photo)
-async def get_photo(message: Message):
-    await message.bot.download(file=message.photo[-1].file_id, destination=f'pictures/pic_{indexes_utils.photo_id}.jpg')
-    client.messages.append(Message(text=message.caption, image=indexes_utils.photo_id))
-    indexes_utils.photo_id += 1
-
+async def get_photo(message: types.Message):
+    await eventGetPhoto(message, AI)
 
 @dp.message(F.document)
-async def handle_document(message: Message):
-    await eventGetDocument(message, bot, client, indexes_utils)
+async def handle_document(message: types.Message):
+    await eventGetDocument(message, bot, AI)
 
 
 @dp.message(F.text)
 async def catch_messages(message: types.Message):
-    client.messages.append(Message(text=message.text))
+    await eventGetText(message, AI)
 
 
 async def main():
@@ -51,4 +49,3 @@ async def main():
 
 if __name__ == '__main__':
         asyncio.run(main())
-
